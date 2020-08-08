@@ -6,6 +6,7 @@ import time
 import os
 import io
 import pickle
+from typing import List
 
 import spacy
 
@@ -59,6 +60,7 @@ MISSED_MENTIONS_FILE = os.path.join(
     PACKAGE_DIRECTORY, "test_mentions_identification.txt"
 )
 SENTENCES_PATH = os.path.join(PACKAGE_DIRECTORY, "test_sentences.txt")
+
 
 ###################
 ### UTILITIES #####
@@ -219,7 +221,7 @@ def load_file(full_name, debug=False):
                 if debug:
                     print("Inside utterance")
                 assert cols[0] == name and int(cols[1]) == int(part), (
-                    "Doc name or part error " + line
+                        "Doc name or part error " + line
                 )
                 assert int(cols[2]) == index, "Index error on " + line
                 if speaker:
@@ -242,11 +244,11 @@ def load_file(full_name, debug=False):
                         except:
                             print("error getting coreferences for line " + line)
                         assert match is not None, (
-                            "Error parsing coref " + tok + " in " + line
+                                "Error parsing coref " + tok + " in " + line
                         )
                         num = match.group(2)
                         assert num is not "", (
-                            "Error parsing coref " + tok + " in " + line
+                                "Error parsing coref " + tok + " in " + line
                         )
                         if match.group(1) == "(":
                             if debug:
@@ -258,8 +260,8 @@ def load_file(full_name, debug=False):
                                 if debug:
                                     print("i", i)
                                 if (
-                                    corefs[i]["label"] == num
-                                    and corefs[i]["end"] is None
+                                        corefs[i]["label"] == num
+                                        and corefs[i]["end"] is None
                                 ):
                                     j = i
                                     break
@@ -331,7 +333,7 @@ class ConllDoc(Document):
             c_lookup = []
             while i is not None and len(c_tok) and c_tok.startswith(s_tok.text):
                 c_lookup.append(i)
-                c_tok = c_tok[len(s_tok) :]
+                c_tok = c_tok[len(s_tok):]
                 i, s_tok = next(s_iter, (None, None))
                 if debug and len(c_tok):
                     print("eating token: conll", c_tok, "spacy", s_tok, "index", i)
@@ -340,7 +342,7 @@ class ConllDoc(Document):
         return lookup
 
     def add_conll_utterance(
-        self, parsed, tokens, corefs, speaker_id, use_gold_mentions, debug=False
+            self, parsed, tokens, corefs, speaker_id, use_gold_mentions, debug=False
     ):
         conll_lookup = self.get_conll_spacy_lookup(tokens, parsed)
         self.conll_tokens.append(tokens)
@@ -348,10 +350,13 @@ class ConllDoc(Document):
         # Convert conll tokens coref index in spacy tokens indexes
         identified_gold = [False] * len(corefs)
         for coref in corefs:
-            missing_values = [key for key in ['label', 'start', 'end', ] if coref.get(key, None) is None]
+            missing_values = [key for key in ['label', 'start', 'end', ] if
+                              coref.get(key, None) is None]
             if missing_values:
-                found_values = {key: coref[key] for key in ['label', 'start', 'end'] if coref.get(key, None) is not None}
-                raise Exception(f"Coref {self.name} with fields {found_values} has empty values for the keys {missing_values}.")
+                found_values = {key: coref[key] for key in ['label', 'start', 'end'] if
+                                coref.get(key, None) is not None}
+                raise Exception(
+                    f"Coref {self.name} with fields {found_values} has empty values for the keys {missing_values}.")
 
             coref["start"] = conll_lookup[coref["start"]][0]
             coref["end"] = conll_lookup[coref["end"]][-1]
@@ -366,7 +371,7 @@ class ConllDoc(Document):
                 # print("coref['label']", coref['label'])
                 # print("coref text",parsed[coref['start']:coref['end']+1])
                 mention = Mention(
-                    parsed[coref["start"] : coref["end"] + 1],
+                    parsed[coref["start"]: coref["end"] + 1],
                     len(self.mentions),
                     len(self.utterances),
                     self.n_sents,
@@ -406,14 +411,14 @@ class ConllDoc(Document):
                             self.part,
                             str(len(self.utterances)),
                             parsed.text,
-                            parsed[coref["start"] : coref["end"] + 1].text,
+                            parsed[coref["start"]: coref["end"] + 1].text,
                         ]
                     )
                     if debug:
                         print(
                             "❄️ gold mention not in predicted mentions",
                             coref,
-                            parsed[coref["start"] : coref["end"] + 1],
+                            parsed[coref["start"]: coref["end"] + 1],
                         )
         self.utterances.append(parsed)
         self.gold_corefs.append(corefs)
@@ -488,7 +493,7 @@ class ConllDoc(Document):
         if debug:
             print("mentions", self.mentions, str([m.gold_label for m in self.mentions]))
         for mention_idx, antecedents_idx in list(
-            self.get_candidate_pairs(max_distance=None, max_distance_with_match=None)
+                self.get_candidate_pairs(max_distance=None, max_distance_with_match=None)
         ):
             n_mentions += 1
             mention = self.mentions[mention_idx]
@@ -511,8 +516,8 @@ class ConllDoc(Document):
             )
             ants = [self.mentions[ant_idx] for ant_idx in antecedents_idx]
             no_antecedent = (
-                not any(ant.gold_label == mention.gold_label for ant in ants)
-                or mention.gold_label is None
+                    not any(ant.gold_label == mention.gold_label for ant in ants)
+                    or mention.gold_label is None
             )
             if antecedents_idx:
                 pairs_ant_idx += [idx for idx in antecedents_idx]
@@ -566,11 +571,11 @@ class ConllDoc(Document):
 ### ConllCorpus #####
 class ConllCorpus(object):
     def __init__(
-        self,
-        n_jobs=4,
-        embed_path=PACKAGE_DIRECTORY + "/weights/",
-        gold_mentions=False,
-        blacklist=False,
+            self,
+            n_jobs=4,
+            embed_path=PACKAGE_DIRECTORY + "/weights/",
+            gold_mentions=False,
+            blacklist: List[str] = None,
     ):
         self.n_jobs = n_jobs
         self.features = {}
@@ -610,13 +615,13 @@ class ConllCorpus(object):
                         missing_words_doc.append(doc.name + doc.part)
                         if debug:
                             out_str = (
-                                "No matching tokens in tuned voc for "
-                                + w
-                                + " in sentence "
-                                + sent.text
-                                + " in doc "
-                                + doc.name
-                                + doc.part
+                                    "No matching tokens in tuned voc for "
+                                    + w
+                                    + " in sentence "
+                                    + sent.text
+                                    + " in doc "
+                                    + doc.name
+                                    + doc.part
                             )
                             print(out_str)
         return missing_words, missing_words_sents, missing_words_doc
@@ -708,12 +713,12 @@ class ConllCorpus(object):
             doc_list = parallel_process(cleaned_file_list, load_file)
             for docs in doc_list:  # executor.map(self.load_file, cleaned_file_list):
                 for (
-                    utts_text,
-                    utt_tokens,
-                    utts_corefs,
-                    utts_speakers,
-                    name,
-                    part,
+                        utts_text,
+                        utt_tokens,
+                        utts_corefs,
+                        utts_speakers,
+                        name,
+                        part,
                 ) in docs:
                     if debug:
                         print("Imported", name)
@@ -771,13 +776,13 @@ class ConllCorpus(object):
         )
         doc_iter = (s for s in self.utts_text)
         for utt_tuple in tqdm(
-            zip(
-                nlp.pipe(doc_iter),
-                self.utts_tokens,
-                self.utts_corefs,
-                self.utts_speakers,
-                self.utts_doc_idx,
-            )
+                zip(
+                    nlp.pipe(doc_iter),
+                    self.utts_tokens,
+                    self.utts_corefs,
+                    self.utts_speakers,
+                    self.utts_doc_idx,
+                )
         ):
             spacy_tokens, conll_tokens, corefs, speaker, doc_id = utt_tuple
             if debug:
@@ -785,14 +790,14 @@ class ConllCorpus(object):
             doc = spacy_tokens
             if debug:
                 out_str = (
-                    "utterance "
-                    + unicode_(doc)
-                    + " corefs "
-                    + unicode_(corefs)
-                    + " speaker "
-                    + unicode_(speaker)
-                    + "doc_id"
-                    + unicode_(doc_id)
+                        "utterance "
+                        + unicode_(doc)
+                        + " corefs "
+                        + unicode_(corefs)
+                        + " speaker "
+                        + unicode_(speaker)
+                        + "doc_id"
+                        + unicode_(doc_id)
                 )
                 print(out_str.encode("utf-8"))
             self.docs[doc_id].add_conll_utterance(
@@ -916,14 +921,17 @@ if __name__ == "__main__":
         help="Use gold mentions (1) or not (0, default)",
     )
     parser.add_argument(
-        "--blacklist", type=int, default=0, help="Use blacklist (1) or not (0, default)"
+        "--blacklist", type=str, nargs="+", default=None,
+        help="Space-separated list of words to blacklist (default none)"
     )
     parser.add_argument("--spacy_model", type=str, default=None, help="model name")
     args = parser.parse_args()
     if args.key is None:
         args.key = args.path + "/key.txt"
     CORPUS = ConllCorpus(
-        n_jobs=args.n_jobs, gold_mentions=args.gold_mentions, blacklist=args.blacklist
+        n_jobs=args.n_jobs,
+        gold_mentions=args.gold_mentions,
+        blacklist=args.blacklist
     )
     if args.function == "parse" or args.function == "all":
         SAVE_DIR = args.path + "/numpy/"

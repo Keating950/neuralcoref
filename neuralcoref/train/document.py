@@ -1,9 +1,11 @@
 """data models and pre-processing for the coref algorithm"""
+from __future__ import annotations
 
 import re
 import io
 from six import string_types, integer_types
-from spacy.tokens import Span, Token
+from spacy.tokens import Doc, Span, Token
+from typing import List
 
 from neuralcoref.train.compat import unicode_
 from neuralcoref.train.utils import encode_distance, parallel_process
@@ -19,8 +21,6 @@ import numpy as np
 #########################
 ####### UTILITIES #######
 #########################
-
-NO_COREF_LIST = ["i", "me", "my", "you", "your"]
 
 MENTION_TYPE = {"PRONOMINAL": 0, "NOMINAL": 1, "PROPER": 2, "LIST": 3}
 MENTION_LABEL = {0: "PRONOMINAL", 1: "NOMINAL", 2: "PROPER", 3: "LIST"}
@@ -48,7 +48,7 @@ MAX_ITER = 100
 #########################
 
 
-def extract_mentions_spans(doc, blacklist, debug=False):
+def extract_mentions_spans(doc: Doc, blacklist: List[str], debug=False):
     """
     Extract potential mentions from a spacy parsed Doc
     """
@@ -90,7 +90,7 @@ def extract_mentions_spans(doc, blacklist, debug=False):
     return cleaned_mentions_spans
 
 
-def _extract_from_sent(doc, span, blacklist=True, debug=False):
+def _extract_from_sent(doc: Doc, span: Span, blacklist: List[str] = None, debug=False):
     """
     Extract Pronouns and Noun phrases mentions from a spacy Span
     """
@@ -149,7 +149,7 @@ def _extract_from_sent(doc, span, blacklist=True, debug=False):
                 token.dep_,
             )
 
-        if blacklist and token.lower_ in NO_COREF_LIST:
+        if blacklist and token.lower_ in blacklist:
             if debug:
                 print("token in no_coref_list")
             continue
@@ -301,10 +301,10 @@ class Mention(spacy.tokens.Span):
 
     def __new__(
         cls,
-        span,
-        mention_index,
-        utterance_index,
-        utterance_start_sent,
+        span: Span,
+        mention_index: int,
+        utterance_index: int,
+        utterance_start_sent: int,
         speaker=None,
         gold_label=None,
         *args,
@@ -318,11 +318,11 @@ class Mention(spacy.tokens.Span):
 
     def __init__(
         self,
-        span,
-        mention_index,
-        utterance_index,
-        utterances_start_sent,
-        speaker=None,
+        span: Span,
+        mention_index: int,
+        utterance_index: int,
+        utterances_start_sent: int,
+        speaker: "Speaker" = None,
         gold_label=None,
     ):
         """
@@ -637,7 +637,7 @@ class Document(object):
         utterances=None,
         utterances_speaker=None,
         speakers_names=None,
-        blacklist=False,
+        blacklist: List[str] = None,
         consider_speakers=False,
         model_path=None,
         embedding_extractor=None,
@@ -650,7 +650,7 @@ class Document(object):
             utterances: utterance(s) to load already see self.add_utterances()
             utterances_speaker: speaker(s) of utterance(s) to load already see self.add_utterances()
             speakers_names: speaker(s) of utterance(s) to load already see self.add_utterances()
-            blacklist (boolean): use a list of term for which coreference is not preformed
+            blacklist (List[str]): Set of terms for which coreferences are not resolved
             consider_speakers (boolean): consider speakers informations
             pretrained_model_path (string): Path to a folder with pretrained word embeddings
             embedding_extractor (EmbeddingExtractor): Use a pre-loaded word embeddings extractor
@@ -967,7 +967,7 @@ def mention_detection_debug(sentence):
         model = "en"
     nlp = spacy.load(model)
     doc = nlp(sentence.decode("utf-8"))
-    mentions = extract_mentions_spans(doc, blacklist=False, debug=True)
+    mentions = extract_mentions_spans(doc, blacklist={}, debug=True)
     for mention in mentions:
         print(mention)
 

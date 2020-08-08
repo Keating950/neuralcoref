@@ -5,10 +5,11 @@
 import os
 import spacy
 import numpy as np
+from typing import List
 
 from neuralcoref.train.utils import PACKAGE_DIRECTORY, SIZE_SINGLE_IN
 from neuralcoref.train.compat import unicode_
-from neuralcoref.train.document import Document, MENTION_TYPE, NO_COREF_LIST
+from neuralcoref.train.document import Document, MENTION_TYPE
 
 #######################
 ##### UTILITIES #######
@@ -71,7 +72,7 @@ class Coref(object):
         max_dist=50,
         max_dist_match=500,
         conll=None,
-        blacklist=True,
+        blacklist: List[str] = None,
         debug=False,
     ):
         self.greedyness = greedyness
@@ -294,7 +295,7 @@ class Coref(object):
         else:
             return self.data.utterances
 
-    def get_resolved_utterances(self, last_utterances_added=True, blacklist=True):
+    def get_resolved_utterances(self, last_utterances_added=True, blacklist: List[str] = None):
         """ Return a list of utterrances text where the """
         coreferences = self.get_most_representative(last_utterances_added, blacklist)
         resolved_utterances = []
@@ -329,7 +330,7 @@ class Coref(object):
             "pair_scores": self.mentions_pairs_scores,
         }
 
-    def get_clusters(self, remove_singletons=False, blacklist=False):
+    def get_clusters(self, remove_singletons=False, blacklist: List[str] = None):
         """ Retrieve cleaned clusters"""
         clusters = self.clusters
         mention_to_cluster = self.mention_to_cluster
@@ -339,13 +340,13 @@ class Coref(object):
                 cleaned_list = []
                 for mention_idx in mentions:
                     mention = self.data.mentions[mention_idx]
-                    if mention.lower_ not in NO_COREF_LIST:
+                    if mention.lower_ not in blacklist:
                         cleaned_list.append(mention_idx)
                 clusters[key] = cleaned_list
             # Also clean up keys so we can build coref chains in self.get_most_representative
             added = {}
             for key, mentions in clusters.items():
-                if self.data.mentions[key].lower_ in NO_COREF_LIST:
+                if self.data.mentions[key].lower_ in blacklist:
                     remove_id.append(key)
                     mention_to_cluster[key] = None
                     if mentions:
@@ -365,7 +366,7 @@ class Coref(object):
 
         return clusters, mention_to_cluster
 
-    def get_most_representative(self, last_utterances_added=True, blacklist=True):
+    def get_most_representative(self, last_utterances_added=True, blacklist: List[str] = None):
         """
         Find a most representative mention for each cluster
 
