@@ -20,7 +20,7 @@ cdef struct Hashes:
     int length
 
 cdef struct HashesList:
-    Hashes no_coref_list
+    Hashes blacklist
     Hashes keep_tags
     Hashes PRP_tags
     Hashes leave_dep

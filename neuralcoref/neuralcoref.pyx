@@ -10,9 +10,11 @@ import re
 import os
 import io
 from collections import OrderedDict
+from typing import List
 import json
 cimport cython
 from cpython cimport array
+from cpython.string cimport PyString_AsString
 import array
 from libc.stdint cimport uint16_t, uint32_t, uint64_t, uintptr_t, int32_t
 
@@ -114,7 +116,6 @@ cdef:
 ##########################################################
 ##### STRINGS USED IN RULE_BASED MENTION DETECTION #######
 
-NO_COREF_LIST = ["i", "me", "my", "you", "your"]
 MENTION_TYPE = {"PRONOMINAL": 0, "NOMINAL": 1, "PROPER": 2, "LIST": 3}
 MENTION_LABEL = {0: "PRONOMINAL", 1: "NOMINAL", 2: "PROPER", 3: "LIST"}
 KEEP_TAGS = ["NN", "NNP", "NNPS", "NNS", "PRP", "PRP$", "DT", "IN"]
@@ -140,9 +141,9 @@ cdef set_hashes_list(Hashes* hashes, py_list, StringStore store, Pool mem):
     for i, st in enumerate(py_list):
         hashes.arr[i] = store.add(st)
 
-cdef HashesList get_hash_lookups(StringStore store, Pool mem):
+cdef HashesList get_hash_lookups(StringStore store, Pool mem, list blacklist):
     cdef HashesList hashes
-    set_hashes_list(&hashes.no_coref_list, NO_COREF_LIST, store, mem)
+    set_hashes_list(&hashes.blacklist, blacklist, store, mem)
     set_hashes_list(&hashes.keep_tags, KEEP_TAGS, store, mem)
     set_hashes_list(&hashes.PRP_tags, PRP_TAGS, store, mem)
     set_hashes_list(&hashes.leave_dep, LEAVE_DEP, store, mem)
@@ -351,7 +352,7 @@ cdef void _extract_from_sent(TokenC* doc_c, int sent_start, int sent_end, SentSp
     for i in range(sent_start, sent_end):
         # if debug: print("token", i)
         token = doc_c[i]
-        if blacklist and inside(token.lex.lower, hashes.no_coref_list):
+        if blacklist and inside(token.lex.lower, hashes.blacklist):
             # if debug: print("blacklist")
             continue
         if (not inside(token.tag, hashes.keep_tags) or inside(token.dep, hashes.leave_dep) \
@@ -514,7 +515,6 @@ cdef class NeuralCoref(object):
         """
         self.vocab = vocab
         self.model = model
-        self.hashes = get_hash_lookups(vocab.strings, vocab.mem)
         self.static_vectors = Vectors()
         self.tuned_vectors = Vectors()
         self.conv_dict = None
@@ -527,12 +527,14 @@ cdef class NeuralCoref(object):
         if 'max_dist_match' not in cfg_inference:
             cfg_inference['max_dist_match'] = util.env_opt('max_dist_match', MAX_DIST_MATCH)
         if 'blacklist' not in cfg_inference:
-            cfg_inference['blacklist'] = util.env_opt('blacklist', True)
+            cfg_inference['blacklist'] = util.env_opt('blacklist', None)
         if 'store_scores' not in cfg_inference:
             cfg_inference['store_scores'] = util.env_opt('store_scores', True)
         if 'conv_dict' not in cfg_inference:
             cfg_inference['conv_dict'] = util.env_opt('conv_dict', None)
         self.cfg_inference = cfg_inference
+
+        self.hashes = get_hash_lookups(vocab.strings, vocab.mem, cfg_inference['blacklist'])
 
         # Register attributes on Doc and Span
         if not Doc.has_extension('huggingface_neuralcoref'):
@@ -586,7 +588,7 @@ cdef class NeuralCoref(object):
         if max_dist_match is None:
             max_dist_match = self.cfg_inference.get('max_dist_match', MAX_DIST_MATCH)
         if blacklist is None:
-            blacklist = self.cfg_inference.get('blacklist', True)
+            blacklist = self.cfg_inference.get('blacklist', None)
 
         self.set_conv_dict(conv_dict)
 
@@ -597,7 +599,7 @@ cdef class NeuralCoref(object):
 
     def pipe(self, stream, batch_size=128, n_threads=1,
              greedyness=None, max_dist=None, max_dist_match=None,
-             conv_dict=None, blacklist=None):
+             conv_dict=None, blacklist=False):
         """Process a stream of documents. Currently not optimized.
         stream: The sequence of documents to process.
         batch_size (int): Number of documents to accumulate into a working set.
@@ -612,7 +614,7 @@ cdef class NeuralCoref(object):
         if max_dist_match is None:
             max_dist_match = self.cfg_inference.get('max_dist_match', MAX_DIST_MATCH)
         if blacklist is None:
-            blacklist = self.cfg_inference.get('blacklist', True)
+            blacklist = self.cfg_inference.get('blacklist', False)
 
         self.set_conv_dict(conv_dict)
 
