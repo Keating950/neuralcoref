@@ -1,5 +1,9 @@
 # ✨NeuralCoref 4.0: Coreference Resolution in spaCy with Neural Networks.
 
+## Keating's fork
+This minor fork adds the ability to pass a customized blacklist of words not to resolve coreferences for. Simply pass a sequence of strings to `add_to_pipe` or the `NeuralCoref` constructor instead of a boolean value. Please note that this is a **work in progress** and may not be 100% functional. 
+
+
 NeuralCoref is a pipeline extension for spaCy 2.1+ which annotates and resolves coreference clusters using a neural network. NeuralCoref is production-ready, integrated in spaCy's NLP pipeline and extensible to new training datasets.
 
 For a brief introduction to coreference resolution and NeuralCoref, please refer to our [blog post](https://medium.com/huggingface/state-of-the-art-neural-coreference-resolution-for-chatbots-3302365dcf30).
@@ -213,7 +217,7 @@ Here is the full list of these parameters and their descriptions:
 |`greedyness`     |float                    |A number between 0 and 1 determining how greedy the model is about making coreference decisions (more greedy means more coreference links). The default value is 0.5.
 |`max_dist`       |int                      |How many mentions back to look when considering possible antecedents of the current mention. Decreasing the value will cause the system to run faster but less accurately. The default value is 50.
 |`max_dist_match` |int                      |The system will consider linking the current mention to a preceding one further than `max_dist` away if they share a noun or proper noun. In this case, it looks `max_dist_match` away instead. The default value is 500.
-|`blacklist`      |boolean                  |Should the system resolve coreferences for pronouns in the following list: `["i", "me", "my", "you", "your"]`. The default value is True (coreference resolved).
+|`blacklist`      |Sequence[str]            |List of words not to resolve coreferences for. Default value is `None`.
 |`store_scores`   |boolean                  |Should the system store the scores for the coreferences in annotations. The default value is True.
 |`conv_dict`      |dict(str, list(str))     |A conversion dictionary that you can use to replace the embeddings of *rare words* (keys) by an average of the embeddings of a list of *common words* (values). Ex: `conv_dict={"Angela": ["woman", "girl"]}` will help resolving coreferences for `Angela` by using the embeddings for the more common `woman` and `girl` instead of the embedding of `Angela`. This currently only works for single words (not for words groups).
 
