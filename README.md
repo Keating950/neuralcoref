@@ -1,7 +1,7 @@
 # ✨NeuralCoref 4.0: Coreference Resolution in spaCy with Neural Networks.
 
 ## Keating's fork
-This minor fork adds the ability to pass a customized blacklist of words not to resolve coreferences for. Simply pass a sequence of strings to `add_to_pipe` or the `NeuralCoref` constructor instead of a boolean value. Please note that this is a **work in progress** and may not be 100% functional. 
+This minor fork adds the ability to pass a customized blacklist of words not to resolve coreferences for. Simply pass a sequence of strings to `add_to_pipe` or the `NeuralCoref` constructor instead of a boolean value.
 
 
 NeuralCoref is a pipeline extension for spaCy 2.1+ which annotates and resolves coreference clusters using a neural network. NeuralCoref is production-ready, integrated in spaCy's NLP pipeline and extensible to new training datasets.
