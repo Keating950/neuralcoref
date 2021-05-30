@@ -99,7 +99,7 @@ def _extract_from_sent(doc: Doc, span: Span, blacklist: List[str] = None, debug=
     keep_dep = ["nsubj", "dobj", "iobj", "pobj"]
     nsubj_or_dep = ["nsubj", "dep"]
     conj_or_prep = ["conj", "prep"]
-    remove_pos = ["CCONJ", "INTJ", "ADP"]
+    remove_pos = ["CCONJ", "SCONJ", "INTJ", "ADP"]
     lower_not_end = ["'s", ",", ".", "!", "?", ":", ";"]
 
     # Utility to remove bad endings
@@ -845,7 +845,7 @@ class Document(object):
             mention.words_embeddings_ = words_embeddings_
 
     def get_single_mention_features(self, mention):
-        """ Features for anaphoricity test (signle mention features + genre if conll)"""
+        """ Features for anaphoricity test (single mention features + genre if conll)"""
         features_ = mention.features_
         features_["DocGenre"] = self.genre_
         return (features_, np.concatenate([mention.features, self.genre], axis=0))
